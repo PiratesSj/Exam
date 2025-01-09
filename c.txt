@@ -1,0 +1,179 @@
+#include<stdio.h>
+
+int main() {
+    float rate1 = 3.0, rate2 = 5.0, rate3 = 7.0;
+    float maintenance = 50.0, surchargeRate = 0.1;
+    int prevReading, currReading, totalUnits;
+    float cost1 = 0, cost2 = 0, cost3 = 0, totalBill, surcharge = 0;
+
+    // Input previous and current meter readings
+    printf("Enter the previous meter reading: ");
+    scanf("%d", &prevReading);
+    printf("Enter the current meter reading: ");
+    scanf("%d", &currReading);
+
+    // Calculate total units consumed
+    totalUnits = currReading - prevReading;
+
+    // Calculate cost based on slabs
+    if (totalUnits > 300) {
+        cost3 = (totalUnits - 300) * rate3;
+        cost2 = 200 * rate2;
+        cost1 = 100 * rate1;
+    } else if (totalUnits > 100) {
+        cost2 = (totalUnits - 100) * rate2;
+        cost1 = 100 * rate1;
+    } else {
+        cost1 = totalUnits * rate1;
+    }
+
+    // Calculate total bill
+    totalBill = cost1 + cost2 + cost3 + maintenance;
+
+    // Add surcharge if applicable
+    if (totalBill > 1000) {
+        surcharge = surchargeRate * totalBill;
+        totalBill += surcharge;
+    }
+
+    // Print the bill in a tabular format
+    printf("\n| Slab             | Rate     | Consumed | Cost    |\n");
+    printf("|------------------|----------|----------|---------|\n");
+    printf("| 1 (<100)         | @3.00    | %d       | %.2f |\n", (totalUnits > 100 ? 100 : totalUnits), cost1);
+    printf("| 2 (101 to 300)   | @5.00    | %d       | %.2f |\n", (totalUnits > 300 ? 200 : (totalUnits > 100 ? totalUnits - 100 : 0)), cost2);
+    printf("| 3 (>300)         | @7.00    | %d       | %.2f |\n", (totalUnits > 300 ? totalUnits - 300 : 0), cost3);
+    printf("| Maintenance      |          |          | %.2f |\n", maintenance);
+    printf("| Surcharge (@10%%) |          |          | %.2f |\n", surcharge);
+    printf("|------------------|----------|----------|---------|\n");
+    printf("| Total Bill       |          |          | %.2f |\n", totalBill);
+
+    return 0;
+}
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/wait.h>
+
+void countWords(char *filename) {
+    FILE *file = fopen(filename, "r");
+    int count = 0;
+    char word[100];
+    while (fscanf(file, "%s", word) != EOF) {
+        count++;
+    }
+    fclose(file);
+    printf("Word Count: %d\n", count);
+}
+
+void countLines(char *filename) {
+    FILE *file = fopen(filename, "r");
+    int count = 0;
+    char ch;
+    while ((ch = fgetc(file)) != EOF) {
+        if (ch == '\n') {
+            count++;
+        }
+    }
+    fclose(file);
+    printf("Line Count: %d\n", count);
+}
+
+void countCharacters(char *filename) {
+    FILE *file = fopen(filename, "r");
+    int count = 0;
+    char ch;
+    while ((ch = fgetc(file)) != EOF) {
+        count++;
+    }
+    fclose(file);
+    printf("Character Count: %d\n", count);
+}
+
+int main() {
+    char filename[] = "input.txt";
+    pid_t pid1, pid2, pid3;
+
+    pid1 = fork();
+    if (pid1 == 0) {
+        countWords(filename);
+        exit(0);
+    }
+
+    pid2 = fork();
+    if (pid2 == 0) {
+        countLines(filename);
+        exit(0);
+    }
+
+    pid3 = fork();
+    if (pid3 == 0) {
+        countCharacters(filename);
+        exit(0);
+    }
+
+    // Parent process waits for all child processes to complete
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+
+    return 0;
+}
+
+
+
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <semaphore.h>
+#include <sys/wait.h>
+
+#define N 30
+
+void printSeries(int i, sem_t *sem_current, sem_t *sem_next) {
+    for (int k = 0; k < N / 3; k++) {
+        sem_wait(sem_current);
+        printf("%d ", 3 * k + i);
+        fflush(stdout);
+        sem_post(sem_next);
+    }
+    exit(0);
+}
+
+int main() {
+    sem_t *sem1 = sem_open("/sem1", O_CREAT | O_EXCL, 0644, 1);
+    sem_t *sem2 = sem_open("/sem2", O_CREAT | O_EXCL, 0644, 0);
+    sem_t *sem3 = sem_open("/sem3", O_CREAT | O_EXCL, 0644, 0);
+
+    if (fork() == 0) {
+        printSeries(1, sem1, sem2);
+    }
+
+    if (fork() == 0) {
+        printSeries(2, sem2, sem3);
+    }
+
+    if (fork() == 0) {
+        printSeries(3, sem3, sem1);
+    }
+
+    wait(NULL);
+    wait(NULL);
+    wait(NULL);
+
+    sem_unlink("/sem1");
+    sem_unlink("/sem2");
+    sem_unlink("/sem3");
+
+    sem_close(sem1);
+    sem_close(sem2);
+    sem_close(sem3);
+
+    return 0;
+}
